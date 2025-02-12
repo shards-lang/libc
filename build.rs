@@ -273,17 +273,23 @@ fn emcc_version_code() -> Option<u64> {
             .ok()
     };
 
+    // If we're targeting emscripten, we need to make sure the executable is checked for the right version
+    let is_targeting_emscripten =
+        env::var("CARGO_CFG_TARGET_OS").map_or(false, |os| os == "emscripten");
     if output.is_none() {
+        if is_targeting_emscripten {
+            panic!("Failed to query emcc for version");
+        }
         return None;
     }
-    let output = output.unwrap();
 
-    if !output.status.success() {
-        return None;
-    }
+    let output = output.unwrap();
 
     let stdout = String::from_utf8(output.stdout).ok();
     if stdout.is_none() {
+        if is_targeting_emscripten {
+            panic!("Invalid utf-8 output from emcc");
+        }
         return None;
     }
     let version = stdout.unwrap();
